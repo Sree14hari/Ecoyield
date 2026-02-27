@@ -15,6 +15,9 @@ import 'package:cropmate/services/weather_service.dart';
 import 'package:cropmate/services/groq_service.dart';
 import 'package:flutter/services.dart';
 
+import 'package:cropmate/screens/monte_carlo_simulation_page.dart';
+
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
   @override
@@ -600,6 +603,14 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
+                    _buildSquareButton(
+                      title: 'Yield Sim',
+                      icon: Icons.show_chart_rounded,
+                      color: Colors.deepPurple,
+                      onTap: () => _navigateTo(
+                          context, const MonteCarloSimulationPage()),
+                    ),
+                    
                   ],
                 ),
 
@@ -666,6 +677,38 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _navigateTo(BuildContext context, Widget page) {
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          var curve = Curves.easeOutBack;
+          var curveTween = CurveTween(curve: curve);
+
+          var fadeAnimation = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).animate(animation.drive(curveTween));
+
+          var scaleAnimation = Tween<double>(
+            begin: 0.5,
+            end: 1.0,
+          ).animate(animation.drive(curveTween));
+
+          return FadeTransition(
+            opacity: fadeAnimation,
+            child: ScaleTransition(
+              scale: scaleAnimation,
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 500),
       ),
     );
   }
