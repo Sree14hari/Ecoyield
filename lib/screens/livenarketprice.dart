@@ -15,13 +15,12 @@ class _LivePriceState extends State<LivePrice> {
   List<dynamic> _marketData = [];
   List<dynamic> _filteredData = [];
   String _errorMessage = '';
-  String _searchQuery = '';
-  String _sortBy = 'name'; 
+  String _sortBy = 'name';
 
   final String apiUrl =
       "https://ecoyieldbackend-production.up.railway.app/api/prices";
   final String cacheKey = "cached_market_prices";
-  final TextEditingController _searchController = TextEditingController();
+  final String cacheTimestampKey = "cache_timestamp";
 
   @override
   void initState() {
@@ -29,46 +28,59 @@ class _LivePriceState extends State<LivePrice> {
     _fetchMarketData();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   Future<void> _fetchMarketData({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
+    
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // Check cache validity (cache expires after 30 minutes)
       if (!forceRefresh) {
         final cachedString = prefs.getString(cacheKey);
-        if (cachedString != null) {
-          final decoded = jsonDecode(cachedString);
-          if (mounted) {
-            setState(() {
-              _marketData = decoded["data"];
-              _filteredData = decoded["data"];
-              _isLoading = false;
-            });
+        final cacheTimestamp = prefs.getInt(cacheTimestampKey);
+        
+        if (cachedString != null && cacheTimestamp != null) {
+          final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
+          final thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
+          
+          if (cacheAge < thirtyMinutes) {
+            // Use cached data
+            final decoded = jsonDecode(cachedString);
+            if (mounted) {
+              setState(() {
+                _marketData = decoded["data"];
+                _filteredData = decoded["data"];
+                _applySorting();
+                _isLoading = false;
+              });
+            }
+            return;
           }
-          return;
         }
       }
 
-      final response = await http.get(Uri.parse(apiUrl));
+      // Fetch fresh data
+      final response = await http.get(Uri.parse(apiUrl)).timeout(
+        const Duration(seconds: 15),
+      );
+      
       if (response.statusCode == 200) {
+        // Save to cache with timestamp
         await prefs.setString(cacheKey, response.body);
+        await prefs.setInt(cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
+        
         final decoded = jsonDecode(response.body);
         if (mounted) {
           setState(() {
             _marketData = decoded["data"];
             _filteredData = decoded["data"];
+            _applySorting();
             _isLoading = false;
             _errorMessage = '';
           });
         }
       } else {
-        throw Exception("Failed to load data");
+        throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
       if (mounted) {
@@ -78,17 +90,6 @@ class _LivePriceState extends State<LivePrice> {
         });
       }
     }
-  }
-
-  void _applySearchAndSort(String query) {
-    setState(() {
-      _searchQuery = query;
-      _filteredData = _marketData.where((item) {
-        final name = (item["commodity"] ?? "").toLowerCase();
-        return name.contains(query.toLowerCase());
-      }).toList();
-      _applySorting();
-    });
   }
 
   void _applySorting() {
@@ -107,7 +108,6 @@ class _LivePriceState extends State<LivePrice> {
     });
   }
 
-  // Adjusted colors for a more premium "Eco" feel
   Color _getPriceColor(String? price) {
     final p = double.tryParse(price ?? "0") ?? 0;
     if (p >= 5000) return const Color(0xFF004D40); // Deep Teal
@@ -122,7 +122,7 @@ class _LivePriceState extends State<LivePrice> {
     final isTablet = size.width >= 600;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FBF7), // Softer background
+      backgroundColor: const Color(0xFFF7FBF7),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -134,7 +134,7 @@ class _LivePriceState extends State<LivePrice> {
             backgroundColor: const Color(0xFF1B5E20),
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 64),
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
               title: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,87 +185,39 @@ class _LivePriceState extends State<LivePrice> {
                 ],
               ),
             ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
-              child: Container(
-                height: 60,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            actions: [
+              // Sort button in app bar
+              Container(
+                margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B5E20),
-                  boxShadow: [
-                    if (innerBoxIsScrolled)
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      )
-                  ],
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          style: const TextStyle(color: Colors.white, fontSize: 15),
-                          textAlignVertical: TextAlignVertical.center,
-                          decoration: InputDecoration(
-                            hintText: 'Search commodity...',
-                            hintStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.6), fontSize: 15),
-                            prefixIcon: Icon(Icons.search_rounded,
-                                color: Colors.white.withOpacity(0.8), size: 20),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.only(bottom: 12), // Centers text
-                          ),
-                          onChanged: _applySearchAndSort,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      height: 42,
-                      width: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: PopupMenuButton<String>(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        position: PopupMenuPosition.under,
-                        onSelected: (val) {
-                          setState(() => _sortBy = val);
-                          _applySearchAndSort(_searchQuery);
-                        },
-                        itemBuilder: (_) => [
-                          _sortMenuItem('name', 'Name A–Z', Icons.sort_by_alpha_rounded),
-                          _sortMenuItem('price_asc', 'Price: Low → High',
-                              Icons.trending_up_rounded),
-                          _sortMenuItem('price_desc', 'Price: High → Low',
-                              Icons.trending_down_rounded),
-                        ],
-                      ),
-                    ),
+                child: PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  position: PopupMenuPosition.under,
+                  onSelected: (val) {
+                    setState(() => _sortBy = val);
+                    _applySorting();
+                  },
+                  itemBuilder: (_) => [
+                    _sortMenuItem('name', 'Name A–Z', Icons.sort_by_alpha_rounded),
+                    _sortMenuItem('price_asc', 'Price: Low → High',
+                        Icons.trending_up_rounded),
+                    _sortMenuItem('price_desc', 'Price: High → Low',
+                        Icons.trending_down_rounded),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         ],
         body: _isLoading
@@ -373,9 +325,9 @@ class _LivePriceState extends State<LivePrice> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text('No results for "$_searchQuery"',
+          Text('No commodities available',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.w500)),
         ],
       ),
@@ -386,7 +338,7 @@ class _LivePriceState extends State<LivePrice> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
       itemCount: _filteredData.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12), // Adds spacing between cards
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) => _buildCard(_filteredData[index], false),
     );
   }
