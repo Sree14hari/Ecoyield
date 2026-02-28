@@ -12,15 +12,15 @@ class GroqService {
         Uri.parse(_baseUrl),
         headers: {
           'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8', // Added charset
         },
         body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile', // Updated to supported model
+          'model': 'openai/gpt-oss-120b',
           'messages': [
             {
               'role': 'system',
               'content':
-                  'You are a smart agriculture assistant named CropMate. Your goal is to help users with plant care, crop management, disease identification, and gardening advice. You must ONLY answer questions related to plants, crops, farming, soil, weather for agriculture, and related topics. If a user asks about non-agricultural topics (like coding, history, current events, etc.), politely decline and steer the conversation back to plants.'
+                  'You are a smart agriculture assistant named CropMate. Your goal is to help users with plant care, crop management, disease identification, and gardening advice. You must ONLY answer questions related to plants, crops, farming, soil, weather for agriculture, and related topics. If a user asks about non-agricultural topics (like coding, history, current events, etc.), politely decline and steer the conversation back to plants. You can respond in multiple languages including Malayalam, Hindi, Tamil, Telugu, and English.'
             },
             {'role': 'user', 'content': message}
           ],
@@ -29,7 +29,8 @@ class GroqService {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        // Explicitly decode with UTF-8
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
         return data['choices'][0]['message']['content'];
       } else {
         print('Groq API Error: ${response.body}');

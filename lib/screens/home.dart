@@ -221,7 +221,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.monochrome_photos), // The icon to display
+                      icon: const Icon(Icons.chat_bubble, color: Colors.green, size: 24), // The icon to display
                       onPressed: () {
                         // Code to execute when the button is pressed
                         Navigator.of(context).push(
@@ -619,12 +619,12 @@ class _HomePageState extends State<HomePage> {
                       color: const Color(0xFF1A3A5C),
                       onTap: () => _navigateTo(context, const InsuranceOptimizerPage()),
                     ),
-                    _buildSquareButton(
-                      title: 'Subsidy',
-                      icon: Icons.currency_rupee,
-                      color: const Color(0xFF1A3A5C),
-                      onTap: () => _navigateTo(context, const SubsidyOptimizerPage()),
-                    ),
+                    // _buildSquareButton(
+                    //   title: 'Subsidy',
+                    //   icon: Icons.currency_rupee,
+                    //   color: const Color(0xFF1A3A5C),
+                    //   onTap: () => _navigateTo(context, const SubsidyOptimizerPage()),
+                    // ),
                     _buildSquareButton(
                       title: 'Crop Prediction',
                       icon: Icons.crop,
@@ -819,7 +819,7 @@ class _HomePageState extends State<HomePage> {
                           const Icon(Icons.smart_toy, color: Colors.white),
                           const SizedBox(width: 8),
                           const Text(
-                            'ecoyield Assistant',
+                            'Ecoyield Assistant',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
