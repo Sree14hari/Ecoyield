@@ -394,7 +394,7 @@ class _PlantIdentificationPageState extends State<PlantIdentificationPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plant Identification'),
+        title: const Text('Weed Identification'),
         backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         elevation: 0,
         shape: const RoundedRectangleBorder(
@@ -433,7 +433,7 @@ class _PlantIdentificationPageState extends State<PlantIdentificationPage>
                   child: Column(
                     children: [
                       const Text(
-                        'Plant Identification',
+                        'Weed Identification',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
