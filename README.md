@@ -140,16 +140,8 @@ Main user journey is centered around `HomePage`, with tabs and feature launch ca
 	- Farm-total yield estimates by acreage
 	- Practical advisory card
 
-### 10) Subsidy Optimizer
-- Evaluates user profile against 8 central schemes.
-- Includes rule engine for:
-	- Eligibility
-	- Blocking reasons
-	- Estimated yearly benefit
-	- Priority score (benefit + urgency + ease)
-- Includes optimization insights (scheme stacking/timing guidance).
 
-### 11) GlobalReach Community
+### 10) GlobalReach Community
 - Community feed (GET) + Share Yield form (POST).
 - Cloud-backed message stream with name/location/message model.
 
@@ -170,8 +162,6 @@ Main user journey is centered around `HomePage`, with tabs and feature launch ca
 - `monte_carlo_simulation_page.dart`
 - `GlobalReach.dart` (from app bar action)
 
-### Present but not currently wired in `HomePage`
-- `subsidy_optimizer_page.dart` (button exists but currently commented out)
 
 ### Standalone / legacy / placeholder screens
 - `chat_page.dart` (legacy DeepSeek chat page; not used in current nav)
