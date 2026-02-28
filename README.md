@@ -1,4 +1,4 @@
-# EcoYield (CropMate)
+# EcoYield 
 
 EcoYield is a Flutter-based smart farming companion app focused on crop decisions, plant diagnostics, weather-aware guidance, and farm finance tools.
 
