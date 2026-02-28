@@ -1,7 +1,9 @@
 // ignore_for_file: unused_element
 
 import 'package:cropmate/screens/GlobalReach.dart';
+import 'package:cropmate/screens/crop_prediction_page.dart';
 import 'package:cropmate/screens/livenarketprice.dart';
+import 'package:cropmate/screens/subsidy_optimizer_page.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -16,6 +18,7 @@ import 'package:cropmate/services/groq_service.dart';
 import 'package:flutter/services.dart';
 
 import 'package:cropmate/screens/monte_carlo_simulation_page.dart';
+import 'package:cropmate/screens/insurance_optimizer_page.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -609,6 +612,24 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.deepPurple,
                       onTap: () => _navigateTo(
                           context, const MonteCarloSimulationPage()),
+                    ),
+                    _buildSquareButton(
+                      title: 'Insurance',
+                      icon: Icons.shield_outlined,
+                      color: const Color(0xFF1A3A5C),
+                      onTap: () => _navigateTo(context, const InsuranceOptimizerPage()),
+                    ),
+                    _buildSquareButton(
+                      title: 'Subsidy',
+                      icon: Icons.currency_rupee,
+                      color: const Color(0xFF1A3A5C),
+                      onTap: () => _navigateTo(context, const SubsidyOptimizerPage()),
+                    ),
+                    _buildSquareButton(
+                      title: 'Crop Prediction',
+                      icon: Icons.crop,
+                      color: const Color(0xFF1A3A5C),
+                      onTap: () => _navigateTo(context, const CropPredictionPage()),
                     ),
                     
                   ],

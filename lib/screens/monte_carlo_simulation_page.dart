@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Unit conversion
-// 1 tonne/hectare = 404.686 kg/acre
 // ─────────────────────────────────────────────────────────────────────────────
 
 const double kTHaToKgAcre = 404.686;
@@ -17,7 +16,42 @@ String fmtYield(double tHa) =>
     '${toKgAcre(tHa).toStringAsFixed(0)} kg/acre';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Design tokens — warm earthy palette
+// Responsive helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Breakpoint thresholds
+const double kBreakpointSm = 360;
+const double kBreakpointMd = 600;
+const double kBreakpointLg = 900;
+
+extension ResponsiveContext on BuildContext {
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
+
+  /// Scales a value based on screen width relative to a 390px baseline.
+  /// Tighter clamp for very small screens to prevent overflow.
+  double sp(double size) => size * (screenWidth / 390).clamp(0.65, 1.4);
+
+  /// Returns value based on breakpoints: [sm, md, lg] thresholds.
+  T responsive<T>({required T sm, T? md, T? lg}) {
+    if (screenWidth >= kBreakpointLg && lg != null) return lg;
+    if (screenWidth >= kBreakpointMd && md != null) return md;
+    return sm;
+  }
+
+  bool get isSmall => screenWidth < kBreakpointSm;
+  bool get isMedium => screenWidth >= kBreakpointMd;
+  bool get isLarge => screenWidth >= kBreakpointLg;
+
+  /// Horizontal page padding, responsive
+  double get hPad => responsive<double>(sm: 10, md: 20, lg: 32);
+
+  /// Card inner padding, responsive
+  double get cardPad => responsive<double>(sm: 10, md: 16, lg: 20);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Design tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
 const kBg          = Color(0xFFFAF6EF);
@@ -33,7 +67,7 @@ TextStyle _label(double sz, {Color color = kBrown, FontWeight w = FontWeight.w60
     TextStyle(fontSize: sz, fontWeight: w, color: color, fontFamily: 'Georgia');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Open-Meteo historical weather 
+// Open-Meteo historical weather
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HistoricalWeatherService {
@@ -146,16 +180,11 @@ class CropProfile {
   final String   name, emoji;
   final Color    color;
   final IconData icon;
-  final double   peakYield;   // t/ha at ideal conditions
-  final String   bagSizeKg;   // typical market bag size label
-  final String   commonName;  // farmer-friendly local name
-
-  // Rainfall thresholds (annual mm)
+  final double   peakYield;
+  final String   bagSizeKg;
+  final String   commonName;
   final double rMin, rLow, rHigh, rMax;
-
-  // Temperature thresholds (annual mean °C)
   final double tMin, tLow, tHigh, tMax;
-
   final double noiseCv;
 
   const CropProfile({
@@ -187,7 +216,6 @@ class CropProfile {
       (peakYield * rainStress(rain) * tempStress(temp) * (1 + noise))
           .clamp(0.0, peakYield * 1.2);
 
-  /// Peak yield in kg/acre
   double get peakYieldKgAcre => toKgAcre(peakYield);
 }
 
@@ -195,45 +223,35 @@ const kCropProfiles = <CropProfile>[
   CropProfile(
     name: 'Rice', emoji: '🌾',
     color: Color(0xFF10B981), icon: Icons.rice_bowl_outlined,
-    peakYield: 5.5,
-    bagSizeKg: '50',
-    commonName: 'Paddy / Chawal',
+    peakYield: 5.5, bagSizeKg: '50', commonName: 'Paddy / Chawal',
     rMin: 400,  rLow: 1200, rHigh: 3500, rMax: 6000,
     tMin: 20,   tLow: 24,   tHigh: 32,   tMax: 38,
   ),
   CropProfile(
     name: 'Wheat', emoji: '🌿',
     color: Color(0xFFD4860A), icon: Icons.grass,
-    peakYield: 4.5,
-    bagSizeKg: '50',
-    commonName: 'Gehun',
+    peakYield: 4.5, bagSizeKg: '50', commonName: 'Gehun',
     rMin: 200,  rLow: 450,  rHigh: 900,  rMax: 1400,
     tMin: 5,    tLow: 10,   tHigh: 20,   tMax: 28,
   ),
   CropProfile(
     name: 'Maize', emoji: '🌽',
     color: Color(0xFFF97316), icon: Icons.eco,
-    peakYield: 6.0,
-    bagSizeKg: '50',
-    commonName: 'Makka / Corn',
+    peakYield: 6.0, bagSizeKg: '50', commonName: 'Makka / Corn',
     rMin: 250,  rLow: 500,  rHigh: 1100, rMax: 1800,
     tMin: 8,    tLow: 12,   tHigh: 24,   tMax: 32,
   ),
   CropProfile(
     name: 'Sugarcane', emoji: '🎋',
     color: Color(0xFF8B5CF6), icon: Icons.local_florist,
-    peakYield: 80.0,
-    bagSizeKg: '100',
-    commonName: 'Ganna / Ikshu',
+    peakYield: 80.0, bagSizeKg: '100', commonName: 'Ganna / Ikshu',
     rMin: 700,  rLow: 1500, rHigh: 4000, rMax: 6000,
     tMin: 18,   tLow: 22,   tHigh: 32,   tMax: 40,
   ),
   CropProfile(
     name: 'Cotton', emoji: '🌸',
     color: Color(0xFF06B6D4), icon: Icons.cloud_outlined,
-    peakYield: 2.2,
-    bagSizeKg: '170',
-    commonName: 'Kapas / Karpas',
+    peakYield: 2.2, bagSizeKg: '170', commonName: 'Kapas / Karpas',
     rMin: 300,  rLow: 550,  rHigh: 950,  rMax: 1500,
     tMin: 15,   tLow: 20,   tHigh: 32,   tMax: 40,
   ),
@@ -247,7 +265,7 @@ CropProfile cropByName(String n) =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SimulationResult {
-  final List<double> yields;  // sorted ascending, in t/ha internally
+  final List<double> yields;
   final double mean, p5, p25, p50, p75, p95, stdDev;
   final List<_Bin> histogram;
   final CropProfile crop;
@@ -305,7 +323,6 @@ class MonteCarloEngine {
         .map((y) => pow(y - mean, 2) as double)
         .fold(0.0, (double a, double b) => a + b) / n;
 
-    // Build histogram in kg/acre for display
     const bins = 10;
     final yieldsKg = yields.map(toKgAcre).toList();
     final lo = yieldsKg.first, hi = yieldsKg.last;
@@ -319,18 +336,14 @@ class MonteCarloEngine {
     });
 
     return SimulationResult(
-      yields:         yields,
-      mean:           mean,
-      p5:             pct(0.05),
-      p25:            pct(0.25),
-      p50:            pct(0.50),
-      p75:            pct(0.75),
-      p95:            pct(0.95),
-      stdDev:         sqrt(variance),
-      histogram:      histogram,
-      crop:           crop,
-      inputMeanRain:  meanRain,
-      inputMeanTemp:  meanTemp,
+      yields: yields,
+      mean: mean, p5: pct(0.05),
+      p25: pct(0.25), p50: pct(0.50),
+      p75: pct(0.75), p95: pct(0.95),
+      stdDev: sqrt(variance),
+      histogram: histogram,
+      crop: crop,
+      inputMeanRain: meanRain, inputMeanTemp: meanTemp,
     );
   }
 }
@@ -373,8 +386,8 @@ class MonteCarloSimulationPage extends StatefulWidget {
 class _PageState extends State<MonteCarloSimulationPage>
     with SingleTickerProviderStateMixin {
 
-  FarmLocation _loc  = kLocations[0];   // Kerala
-  CropProfile  _crop = kCropProfiles[0]; // Rice
+  FarmLocation _loc  = kLocations[0];
+  CropProfile  _crop = kCropProfiles[0];
   int          _yrs  = 5;
   double       _acres = 2.0;
 
@@ -432,247 +445,366 @@ class _PageState extends State<MonteCarloSimulationPage>
     }
   }
 
+  // ── Responsive font size helpers ──────────────────────────────────────────
+
+  double _fs(BuildContext ctx, double base) => ctx.sp(base);
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final busy = _loadingW || _loadingS;
+    final hPad = context.hPad;
+
     return Scaffold(
       backgroundColor: kBg,
-      appBar: AppBar(
-        backgroundColor: Colors.green, elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
-        ),
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('My Harvest Forecast',
-              style: TextStyle(color: Colors.white,
-                  fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'Georgia')),
-          Text('What will I get this season?',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
-        ]),
-      ),
+      appBar: _buildAppBar(context),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
-          children: [
-            _configCard(),
-            const SizedBox(height: 12),
-            _runBtn(busy),
-            const SizedBox(height: 16),
-            if (_loadingW) _loadCard('☁️  Checking the weather history…',
-                'Looking at $_yrs years of rain & temperature for ${_loc.name}'),
-            if (_loadingS) _loadCard('🌾  Working out your harvest…',
-                'Trying 500 different weather outcomes'),
-            if (_error != null) _errorCard(),
-            if (!busy && _result != null && _weather != null)
-              FadeTransition(opacity: _fade, child: Column(children: [
-                _weatherBanner(),
-                const SizedBox(height: 12),
-                _heroCard(),
-                const SizedBox(height: 12),
-                _quickFactsRow(),
-                const SizedBox(height: 12),
-                _scenarioStrip(),
-                const SizedBox(height: 12),
-                _histChart(),
-                const SizedBox(height: 12),
-                _adviceCard(),
-              ])),
-          ],
+        child: LayoutBuilder(
+          builder: (ctx, constraints) {
+            final maxW = constraints.maxWidth >= kBreakpointLg ? 700.0 : double.infinity;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxW),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(hPad, ctx.sp(14), hPad, 40),
+                  children: [
+                    _configCard(ctx),
+                    SizedBox(height: ctx.sp(12)),
+                    _runBtn(ctx, busy),
+                    SizedBox(height: ctx.sp(16)),
+                    if (_loadingW) _loadCard(ctx,
+                        '☁️  Checking the weather history…',
+                        'Looking at $_yrs years of rain & temperature for ${_loc.name}'),
+                    if (_loadingS) _loadCard(ctx,
+                        '🌾  Working out your harvest…',
+                        'Trying 500 different weather outcomes'),
+                    if (_error != null) _errorCard(ctx),
+                    if (!busy && _result != null && _weather != null)
+                      FadeTransition(opacity: _fade, child: Column(children: [
+                        _weatherBanner(ctx),
+                        SizedBox(height: ctx.sp(12)),
+                        _heroCard(ctx),
+                        SizedBox(height: ctx.sp(12)),
+                        _quickFactsRow(ctx),
+                        SizedBox(height: ctx.sp(12)),
+                        _scenarioStrip(ctx),
+                        SizedBox(height: ctx.sp(12)),
+                        _histChart(ctx),
+                        SizedBox(height: ctx.sp(12)),
+                        _adviceCard(ctx),
+                      ])),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // ── Config card ────────────────────────────────────────────────────────────
-
-  Widget _configCard() => _card(child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(children: [
-        Icon(Icons.agriculture_rounded, color: kBrown, size: 20),
-        const SizedBox(width: 6),
-        Text('Tell us about your farm', style: _label(15, color: kBrown, w: FontWeight.bold)),
-      ]),
-      const SizedBox(height: 14),
-
-      Text('📍 Where is your farm?',
-          style: _label(13, color: Colors.green.shade700)),
-      const SizedBox(height: 6),
-      _dropdown<FarmLocation>(
-        value: _loc, items: kLocations, label: (l) => l.display,
-        onChanged: (v) { if (v != null) setState(() => _loc = v); },
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: Colors.green,
+      elevation: 0,
+      toolbarHeight: context.sp(56),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: Colors.white, size: context.sp(22)),
+        onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
       ),
-
-      const SizedBox(height: 14),
-      Text('🌾 What do you grow?',
-          style: _label(13, color: Colors.brown.shade700)),
-      const SizedBox(height: 8),
-      Wrap(spacing: 8, runSpacing: 8, children: kCropProfiles.map((cp) {
-        final sel = _crop.name == cp.name;
-        return GestureDetector(
-          onTap: () { HapticFeedback.selectionClick(); setState(() => _crop = cp); },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: sel ? cp.color : cp.color.withOpacity(0.09),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: sel ? cp.color : cp.color.withOpacity(0.3)),
-            ),
-            child: Text('${cp.emoji}  ${cp.name}',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                    color: sel ? Colors.white : cp.color)),
+      // FIX: Wrap title in Flexible to prevent horizontal overflow in AppBar
+      title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          'My Harvest Forecast',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: _fs(context, 17),
+            fontFamily: 'Georgia',
           ),
-        );
-      }).toList()),
-
-      const SizedBox(height: 14),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('🏡 How many acres do you farm?',
-            style: _label(13, color: Colors.brown.shade700)),
-        _pill('${_acres.toStringAsFixed(1)} acres', kBrown, kBrown.withOpacity(0.1)),
-      ]),
-      SliderTheme(
-        data: SliderThemeData(
-          activeTrackColor: kBrown,
-          thumbColor: kBrown,
-          inactiveTrackColor: kBrown.withOpacity(0.2),
-          overlayColor: kBrown.withOpacity(0.08),
-          trackHeight: 4,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
-        child: Slider(
+        Text(
+          'What will I get this season?',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.7),
+            fontSize: _fs(context, 10.5),
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      ]),
+    );
+  }
+
+  // ── Config card ─────────────────────────────────────────────────────────
+
+  Widget _configCard(BuildContext ctx) {
+    final isLg = ctx.isMedium;
+
+    return _card(ctx, child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(Icons.agriculture_rounded, color: kBrown, size: ctx.sp(20)),
+          SizedBox(width: ctx.sp(6)),
+          Expanded(
+            child: Text('Tell us about your farm',
+                style: _label(_fs(ctx, 15), color: kBrown, w: FontWeight.bold),
+                overflow: TextOverflow.ellipsis),
+          ),
+        ]),
+        SizedBox(height: ctx.sp(14)),
+
+        Text('📍 Where is your farm?',
+            style: _label(_fs(ctx, 13), color: Colors.green.shade700)),
+        SizedBox(height: ctx.sp(6)),
+        _dropdown<FarmLocation>(
+          ctx: ctx,
+          value: _loc, items: kLocations, label: (l) => l.display,
+          onChanged: (v) { if (v != null) setState(() => _loc = v); },
+        ),
+
+        SizedBox(height: ctx.sp(14)),
+        Text('🌾 What do you grow?',
+            style: _label(_fs(ctx, 13), color: Colors.brown.shade700)),
+        SizedBox(height: ctx.sp(8)),
+
+        // Crop chips — wrap naturally
+        Wrap(
+          spacing: ctx.sp(6),
+          runSpacing: ctx.sp(6),
+          children: kCropProfiles.map((cp) {
+            final sel = _crop.name == cp.name;
+            return GestureDetector(
+              onTap: () { HapticFeedback.selectionClick(); setState(() => _crop = cp); },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: EdgeInsets.symmetric(
+                  horizontal: ctx.sp(isLg ? 14 : 10),
+                  vertical:   ctx.sp(isLg ? 9  : 7),
+                ),
+                decoration: BoxDecoration(
+                  color:  sel ? cp.color : cp.color.withOpacity(0.09),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: sel ? cp.color : cp.color.withOpacity(0.3)),
+                ),
+                child: Text('${cp.emoji}  ${cp.name}',
+                    style: TextStyle(
+                      fontSize: _fs(ctx, isLg ? 13 : 12),
+                      fontWeight: FontWeight.w600,
+                      color: sel ? Colors.white : cp.color,
+                    )),
+              ),
+            );
+          }).toList(),
+        ),
+
+        SizedBox(height: ctx.sp(14)),
+
+        _sliderSection(
+          ctx: ctx,
+          label: '🏡 How many acres do you farm?',
+          pill: '${_acres.toStringAsFixed(1)} acres',
+          pillFg: kBrown,
+          pillBg: kBrown.withOpacity(0.1),
+          activeColor: kBrown,
           value: _acres, min: 0.5, max: 20, divisions: 39,
           onChanged: (v) => setState(() => _acres = v),
         ),
-      ),
 
-      const SizedBox(height: 4),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('📅 Years of weather history to use:',
-            style: _label(13, color: Colors.brown.shade700)),
-        _pill('$_yrs years', kOlive, kOlive.withOpacity(0.1)),
-      ]),
-      SliderTheme(
-        data: SliderThemeData(
-          activeTrackColor: kOlive,
-          thumbColor: kOlive,
-          inactiveTrackColor: kOlive.withOpacity(0.2),
-          overlayColor: kOlive.withOpacity(0.08),
-          trackHeight: 4,
-        ),
-        child: Slider(
+        SizedBox(height: ctx.sp(4)),
+
+        _sliderSection(
+          ctx: ctx,
+          label: '📅 Years of weather history:',
+          pill: '$_yrs years',
+          pillFg: kOlive,
+          pillBg: kOlive.withOpacity(0.1),
+          activeColor: kOlive,
           value: _yrs.toDouble(), min: 2, max: 10, divisions: 8,
           onChanged: (v) => setState(() => _yrs = v.round()),
         ),
+      ],
+    ));
+  }
+
+  /// Responsive slider section — always stacks vertically to prevent overflow.
+  Widget _sliderSection({
+    required BuildContext ctx,
+    required String label,
+    required String pill,
+    required Color pillFg, required Color pillBg,
+    required Color activeColor,
+    required double value, required double min,
+    required double max, required int divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    // FIX: Always use Column layout to prevent label+pill Row overflow.
+    // On medium+ screens we use a Row but guard with Flexible.
+    final header = ctx.isSmall
+        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: _label(_fs(ctx, 12), color: Colors.brown.shade700),
+                overflow: TextOverflow.ellipsis, maxLines: 2),
+            SizedBox(height: ctx.sp(4)),
+            _pill(ctx, pill, pillFg, pillBg),
+          ])
+        : Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Flexible(
+              child: Text(label,
+                  style: _label(_fs(ctx, 13), color: Colors.brown.shade700),
+                  overflow: TextOverflow.ellipsis, maxLines: 2),
+            ),
+            SizedBox(width: ctx.sp(8)),
+            _pill(ctx, pill, pillFg, pillBg),
+          ]);
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      header,
+      SliderTheme(
+        data: SliderThemeData(
+          activeTrackColor:   activeColor,
+          thumbColor:         activeColor,
+          inactiveTrackColor: activeColor.withOpacity(0.2),
+          overlayColor:       activeColor.withOpacity(0.08),
+          trackHeight:        ctx.sp(4),
+          thumbShape: RoundSliderThumbShape(enabledThumbRadius: ctx.sp(8)),
+        ),
+        child: Slider(
+          value: value, min: min, max: max, divisions: divisions,
+          onChanged: onChanged,
+        ),
       ),
-    ],
-  ));
+    ]);
+  }
 
-  // ── Run button ─────────────────────────────────────────────────────────────
+  // ── Run button ────────────────────────────────────────────────────────────
 
-  Widget _runBtn(bool busy) => SizedBox(
-    width: double.infinity, height: 56,
+  Widget _runBtn(BuildContext ctx, bool busy) => SizedBox(
+    width: double.infinity,
+    height: ctx.sp(56),
     child: ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: kOlive, foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ctx.sp(14))),
         elevation: 3,
+        padding: EdgeInsets.symmetric(horizontal: ctx.sp(12)),
       ),
       icon: busy
-          ? const SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-          : const Icon(Icons.search_rounded, size: 22),
-      label: Text(
-        busy ? 'Working out your forecast…' : '🔍  Show Me My Harvest Forecast',
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Georgia'),
+          ? SizedBox(width: ctx.sp(18), height: ctx.sp(18),
+              child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+          : Icon(Icons.search_rounded, size: ctx.sp(20)),
+      label: Flexible(
+        child: Text(
+          busy ? 'Working out your forecast…' : '🔍  Show Me My Harvest Forecast',
+          style: TextStyle(
+            fontSize: _fs(ctx, 13.5),
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Georgia',
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
       onPressed: busy ? null : _run,
     ),
   );
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
 
-  Widget _loadCard(String title, String sub) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(18),
+  Widget _loadCard(BuildContext ctx, String title, String sub) => Container(
+    margin: EdgeInsets.only(bottom: ctx.sp(12)),
+    padding: EdgeInsets.all(ctx.sp(16)),
     decoration: BoxDecoration(color: kSurface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ctx.sp(14)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
             blurRadius: 8, offset: const Offset(0, 3))]),
     child: Row(children: [
-      SizedBox(width: 34, height: 34,
+      SizedBox(width: ctx.sp(32), height: ctx.sp(32),
           child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation(kBrown), strokeWidth: 3)),
-      const SizedBox(width: 14),
+      SizedBox(width: ctx.sp(14)),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: _label(14, color: kBrown, w: FontWeight.bold)),
-        const SizedBox(height: 3),
-        Text(sub, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text(title,
+            style: _label(_fs(ctx, 13.5), color: kBrown, w: FontWeight.bold),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
+        SizedBox(height: ctx.sp(3)),
+        Text(sub,
+            style: TextStyle(fontSize: _fs(ctx, 11.5), color: Colors.grey.shade600),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
       ])),
     ]),
   );
 
-  // ── Error ──────────────────────────────────────────────────────────────────
+  // ── Error ─────────────────────────────────────────────────────────────────
 
-  Widget _errorCard() => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(16),
+  Widget _errorCard(BuildContext ctx) => Container(
+    margin: EdgeInsets.only(bottom: ctx.sp(12)),
+    padding: EdgeInsets.all(ctx.sp(16)),
     decoration: BoxDecoration(color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ctx.sp(14)),
         border: Border.all(color: Colors.red.shade200)),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(Icons.wifi_off_rounded, color: Colors.red.shade600, size: 22),
-      const SizedBox(width: 10),
+      Icon(Icons.wifi_off_rounded, color: Colors.red.shade600, size: ctx.sp(22)),
+      SizedBox(width: ctx.sp(10)),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Could not load weather data',
-            style: _label(14, color: Colors.red.shade700, w: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(_error ?? '', style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
-        const SizedBox(height: 6),
+            style: _label(_fs(ctx, 13.5), color: Colors.red.shade700, w: FontWeight.bold),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
+        SizedBox(height: ctx.sp(4)),
+        Text(_error ?? '',
+            style: TextStyle(fontSize: _fs(ctx, 11.5), color: Colors.red.shade700)),
+        SizedBox(height: ctx.sp(6)),
         Text('Please check your internet connection and try again.',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            style: TextStyle(fontSize: _fs(ctx, 11), color: Colors.grey.shade600)),
       ])),
     ]),
   );
 
-  // ── Weather banner ─────────────────────────────────────────────────────────
+  // ── Weather banner ────────────────────────────────────────────────────────
 
-  Widget _weatherBanner() {
+  Widget _weatherBanner(BuildContext ctx) {
     final w = _weather!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: ctx.sp(14), vertical: ctx.sp(12)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [kSky.withOpacity(0.85), kSky],
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ctx.sp(14)),
       ),
-      child: Row(children: [
-        const Icon(Icons.cloud_done_outlined, color: Colors.white, size: 22),
-        const SizedBox(width: 10),
+      // FIX: Use crossAxisAlignment.start and constrain the right column
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Icon(Icons.cloud_done_outlined, color: Colors.white, size: ctx.sp(22)),
+        SizedBox(width: ctx.sp(10)),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Real weather data loaded ✓',
-              style: const TextStyle(color: Colors.white,
-                  fontWeight: FontWeight.bold, fontSize: 13)),
-          Text('${w.dailyRainfall.length} days of history · ${_loc.display}',
-              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              style: TextStyle(color: Colors.white,
+                  fontWeight: FontWeight.bold, fontSize: _fs(ctx, 13)),
+              overflow: TextOverflow.ellipsis, maxLines: 1),
+          Text('${w.dailyRainfall.length} days · ${_loc.display}',
+              style: TextStyle(color: Colors.white70, fontSize: _fs(ctx, 10.5)),
+              overflow: TextOverflow.ellipsis, maxLines: 1),
         ])),
+        SizedBox(width: ctx.sp(8)),
+        // FIX: Constrain right column so it doesn't push others off-screen
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${w.meanRainfall.toStringAsFixed(0)} mm rain/yr',
-              style: const TextStyle(color: Colors.white,
-                  fontWeight: FontWeight.bold, fontSize: 12)),
-          Text('${w.meanTemp.toStringAsFixed(1)}°C average',
-              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          Text('${w.meanRainfall.toStringAsFixed(0)} mm/yr',
+              style: TextStyle(color: Colors.white,
+                  fontWeight: FontWeight.bold, fontSize: _fs(ctx, 11.5))),
+          Text('${w.meanTemp.toStringAsFixed(1)}°C avg',
+              style: TextStyle(color: Colors.white70, fontSize: _fs(ctx, 10.5))),
         ]),
       ]),
     );
   }
 
-  // ── Hero card — main result ────────────────────────────────────────────────
+  // ── Hero card ─────────────────────────────────────────────────────────────
 
-  Widget _heroCard() {
+  Widget _heroCard(BuildContext ctx) {
     final r   = _result!;
     final cp  = _crop;
     final meanKg = toKgAcre(r.mean);
@@ -681,140 +813,183 @@ class _PageState extends State<MonteCarloSimulationPage>
     final totalFarmKg = meanKg * _acres;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ctx.cardPad),
       decoration: BoxDecoration(
         color: kSurface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(ctx.sp(18)),
         border: Border.all(color: col.withOpacity(0.3), width: 1.5),
         boxShadow: [BoxShadow(color: kBrown.withOpacity(0.06),
             blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Column(children: [
-        // Title
-        Row(children: [
+        // FIX: Wrap entire header row with overflow protection
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(ctx.sp(8)),
             decoration: BoxDecoration(
               color: col.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(ctx.sp(12)),
             ),
-            child: Text(cp.emoji, style: const TextStyle(fontSize: 28)),
+            child: Text(cp.emoji, style: TextStyle(fontSize: ctx.sp(26))),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: ctx.sp(12)),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Expected ${cp.name} Harvest',
-                style: _label(13, color: Colors.grey.shade600, w: FontWeight.w500)),
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(meanKg.toStringAsFixed(0),
-                  style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900,
-                      color: col, fontFamily: 'Georgia')),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 7, left: 5),
-                child: Text('kg/acre',
-                    style: _label(14, color: Colors.grey.shade500, w: FontWeight.w500)),
-              ),
-            ]),
+                style: _label(_fs(ctx, 12.5), color: Colors.grey.shade600, w: FontWeight.w500),
+                overflow: TextOverflow.ellipsis, maxLines: 1),
+            SizedBox(height: ctx.sp(2)),
+            // FIX: Use LayoutBuilder + FittedBox so the number never overflows
+            LayoutBuilder(builder: (_, bc) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        meanKg.toStringAsFixed(0),
+                        style: TextStyle(
+                          // Use a responsive base size; FittedBox will scale down further if needed
+                          fontSize: ctx.responsive<double>(sm: 28, md: 38, lg: 44),
+                          fontWeight: FontWeight.w900,
+                          color: col,
+                          fontFamily: 'Georgia',
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: ctx.sp(4), left: ctx.sp(4)),
+                    child: Text('kg/acre',
+                        style: _label(_fs(ctx, 12), color: Colors.grey.shade500, w: FontWeight.w500)),
+                  ),
+                ],
+              );
+            }),
           ])),
         ]),
 
-        const SizedBox(height: 16),
+        SizedBox(height: ctx.sp(16)),
 
-        // Potential bar
+        // Progress bar section
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('How well is your land doing?',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            _pill('${pct.toStringAsFixed(0)}% of best possible', col, col.withOpacity(0.1)),
+            Flexible(child: Text('How well is your land doing?',
+                style: TextStyle(fontSize: _fs(ctx, 11.5), color: Colors.grey.shade600),
+                overflow: TextOverflow.ellipsis)),
+            SizedBox(width: ctx.sp(6)),
+            _pill(ctx, '${pct.toStringAsFixed(0)}% of best', col, col.withOpacity(0.1)),
           ]),
-          const SizedBox(height: 8),
+          SizedBox(height: ctx.sp(8)),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(ctx.sp(8)),
             child: LinearProgressIndicator(
-              value: pct / 100, minHeight: 14,
+              value: pct / 100, minHeight: ctx.sp(13),
               backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation(col),
             ),
           ),
-          const SizedBox(height: 5),
+          SizedBox(height: ctx.sp(4)),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('0', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
-            Text('Best ever: ${cp.peakYieldKgAcre.toStringAsFixed(0)} kg/acre',
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+            Text('0', style: TextStyle(fontSize: _fs(ctx, 9.5), color: Colors.grey.shade400)),
+            Flexible(
+              child: Text('Best: ${cp.peakYieldKgAcre.toStringAsFixed(0)} kg/acre',
+                  style: TextStyle(fontSize: _fs(ctx, 9.5), color: Colors.grey.shade400),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end),
+            ),
           ]),
         ]),
 
-        const SizedBox(height: 16),
+        SizedBox(height: ctx.sp(16)),
         _divider(),
-        const SizedBox(height: 14),
+        SizedBox(height: ctx.sp(14)),
 
-        // Your whole farm total
+        // Farm total box
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(ctx.sp(14)),
           decoration: BoxDecoration(
             color: kBrown.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(ctx.sp(12)),
             border: Border.all(color: kBrown.withOpacity(0.15)),
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Text('🏡', style: TextStyle(fontSize: 22)),
-            const SizedBox(width: 10),
+            Text('🏡', style: TextStyle(fontSize: ctx.sp(22))),
+            SizedBox(width: ctx.sp(10)),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Your ${_acres.toStringAsFixed(1)}-acre farm total',
-                  style: _label(12, color: kBrown, w: FontWeight.w500)),
-              Row(children: [
-                Text(totalFarmKg.toStringAsFixed(0),
-                    style: _label(22, color: kBrown, w: FontWeight.bold)),
-                const SizedBox(width: 5),
-                Text('kg total', style: _label(12, color: Colors.brown.shade400, w: FontWeight.w500)),
+                  style: _label(_fs(ctx, 12), color: kBrown, w: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis, maxLines: 1),
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Flexible(child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(totalFarmKg.toStringAsFixed(0),
+                      style: _label(ctx.sp(20), color: kBrown, w: FontWeight.bold)),
+                )),
+                SizedBox(width: ctx.sp(5)),
+                Padding(
+                  padding: EdgeInsets.only(bottom: ctx.sp(2)),
+                  child: Text('kg total',
+                      style: _label(_fs(ctx, 11), color: Colors.brown.shade400, w: FontWeight.w500)),
+                ),
               ]),
             ])),
           ]),
         ),
 
-        const SizedBox(height: 14),
+        SizedBox(height: ctx.sp(14)),
 
-        // Good vs bad season
-        Row(children: [
-          Expanded(child: _seasonBox(
-            icon: '☀️', label: 'Good Season',
-            kg: toKgAcre(r.p75), color: kOlive, bg: kOlive.withOpacity(0.08),
-            note: '1 in 4 years',
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: _seasonBox(
-            icon: '🌧', label: 'Tough Season',
-            kg: toKgAcre(r.p25), color: kRed, bg: kRed.withOpacity(0.07),
-            note: '1 in 4 years',
-          )),
-        ]),
+        // Good / bad season — always stacks vertically on small screens
+        ctx.isSmall
+            ? Column(children: [
+                _seasonBox(ctx, icon: '☀️', label: 'Good Season',
+                    kg: toKgAcre(r.p75), color: kOlive, bg: kOlive.withOpacity(0.08), note: '1 in 4 years'),
+                SizedBox(height: ctx.sp(8)),
+                _seasonBox(ctx, icon: '🌧', label: 'Tough Season',
+                    kg: toKgAcre(r.p25), color: kRed,  bg: kRed.withOpacity(0.07),   note: '1 in 4 years'),
+              ])
+            : Row(children: [
+                Expanded(child: _seasonBox(ctx, icon: '☀️', label: 'Good Season',
+                    kg: toKgAcre(r.p75), color: kOlive, bg: kOlive.withOpacity(0.08), note: '1 in 4 years')),
+                SizedBox(width: ctx.sp(10)),
+                Expanded(child: _seasonBox(ctx, icon: '🌧', label: 'Tough Season',
+                    kg: toKgAcre(r.p25), color: kRed,  bg: kRed.withOpacity(0.07),   note: '1 in 4 years')),
+              ]),
       ]),
     );
   }
 
-  Widget _seasonBox({
+  Widget _seasonBox(BuildContext ctx, {
     required String icon, required String label,
     required double kg, required Color color,
     required Color bg, required String note,
   }) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12),
+    padding: EdgeInsets.all(ctx.sp(12)),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(ctx.sp(12)),
         border: Border.all(color: color.withOpacity(0.2))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(icon, style: const TextStyle(fontSize: 20)),
-      const SizedBox(height: 6),
-      Text(kg.toStringAsFixed(0),
-          style: _label(18, color: color, w: FontWeight.bold)),
-      Text('kg/acre', style: _label(10, color: color.withOpacity(0.7), w: FontWeight.w500)),
-      const SizedBox(height: 2),
-      Text(label, style: _label(12, color: Colors.grey.shade700)),
-      Text(note, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+      Text(icon, style: TextStyle(fontSize: ctx.sp(20))),
+      SizedBox(height: ctx.sp(6)),
+      // FIX: FittedBox prevents kg number from overflowing the season box
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(kg.toStringAsFixed(0),
+            style: _label(_fs(ctx, 18), color: color, w: FontWeight.bold)),
+      ),
+      Text('kg/acre', style: _label(_fs(ctx, 10), color: color.withOpacity(0.7), w: FontWeight.w500)),
+      SizedBox(height: ctx.sp(2)),
+      Text(label, style: _label(_fs(ctx, 12), color: Colors.grey.shade700)),
+      Text(note, style: TextStyle(fontSize: _fs(ctx, 10), color: Colors.grey.shade500)),
     ]),
   );
 
-  // ── Quick facts row ────────────────────────────────────────────────────────
+  // ── Quick facts row ───────────────────────────────────────────────────────
 
-  Widget _quickFactsRow() {
+  Widget _quickFactsRow(BuildContext ctx) {
     final r  = _result!;
     final cp = _crop;
     final meanKg     = toKgAcre(r.mean);
@@ -823,41 +998,39 @@ class _PageState extends State<MonteCarloSimulationPage>
     final totalKg    = meanKg * _acres;
     final totalBags  = (totalKg / bagSz).floor();
 
-    return _card(child: Column(
+    final tiles = [
+      _factTile(ctx, '${bags.toString()} bags',
+          'Per acre (${cp.bagSizeKg} kg bags)', '🎒', kOlive),
+      _factTile(ctx, '${totalBags.toString()} bags',
+          'Your whole farm', '🏡', kBrown),
+      _factTile(ctx, '${totalKg.toStringAsFixed(0)} kg',
+          'Total from your farm', '⚖️', kAmber),
+      _factTile(ctx,
+          _riskLabel(r.mean, cp.peakYield),
+          'Season risk level',
+          _riskEmoji(r.mean, cp.peakYield), kRed),
+    ];
+
+    return _card(ctx, child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('📦 In Simple Numbers', style: _label(15, color: kBrown, w: FontWeight.bold)),
-        const SizedBox(height: 4),
+        Text('📦 In Simple Numbers',
+            style: _label(_fs(ctx, 15), color: kBrown, w: FontWeight.bold)),
+        SizedBox(height: ctx.sp(4)),
         Text('What does your harvest actually look like?',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: _factTile(
-            '${bags.toString()} bags',
-            'Per acre (${cp.bagSizeKg} kg bags)',
-            '🎒', kOlive,
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: _factTile(
-            '${totalBags.toString()} bags',
-            'Your whole farm',
-            '🏡', kBrown,
-          )),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: _factTile(
-            '${totalKg.toStringAsFixed(0)} kg',
-            'Total from your farm',
-            '⚖️', kAmber,
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: _factTile(
-            _riskLabel(r.mean, cp.peakYield),
-            'Season risk level',
-            _riskEmoji(r.mean, cp.peakYield), kRed,
-          )),
-        ]),
+            style: TextStyle(fontSize: _fs(ctx, 11), color: Colors.grey.shade500)),
+        SizedBox(height: ctx.sp(14)),
+        // FIX: Use a more conservative aspectRatio and clamp to avoid tile overflow
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: ctx.sp(8),
+          mainAxisSpacing: ctx.sp(8),
+          // FIX: Smaller aspect ratio so tiles have more height on tiny screens
+          childAspectRatio: ctx.responsive<double>(sm: 1.35, md: 1.6, lg: 1.8),
+          children: tiles,
+        ),
       ],
     ));
   }
@@ -876,68 +1049,83 @@ class _PageState extends State<MonteCarloSimulationPage>
     return '🔴';
   }
 
-  Widget _factTile(String value, String label, String icon, Color color) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.07),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: color.withOpacity(0.2)),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(icon, style: const TextStyle(fontSize: 20)),
-      const SizedBox(height: 6),
-      Text(value, style: _label(17, color: color, w: FontWeight.bold)),
-      const SizedBox(height: 2),
-      Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-    ]),
-  );
+  Widget _factTile(BuildContext ctx, String value, String label, String icon, Color color) =>
+    Container(
+      padding: EdgeInsets.all(ctx.sp(10)),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(ctx.sp(12)),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(icon, style: TextStyle(fontSize: ctx.sp(18))),
+        SizedBox(height: ctx.sp(4)),
+        // FIX: FittedBox ensures value text never overflows tile width
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                style: _label(_fs(ctx, 16), color: color, w: FontWeight.bold)),
+          ),
+        ),
+        SizedBox(height: ctx.sp(2)),
+        Text(label,
+            style: TextStyle(fontSize: _fs(ctx, 10), color: Colors.grey.shade600),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
+      ]),
+    );
 
-  // ── Scenario strip ─────────────────────────────────────────────────────────
+  // ── Scenario strip ────────────────────────────────────────────────────────
 
-  Widget _scenarioStrip() {
+  Widget _scenarioStrip(BuildContext ctx) {
     final r = _result!;
     final n = r.yields.length.toDouble();
     final great = r.yields.where((y) => y >= r.p75).length;
     final ok    = r.yields.where((y) => y >= r.p25 && y < r.p75).length;
     final bad   = r.yields.where((y) => y < r.p25).length;
 
-    return _card(child: Column(
+    return _card(ctx, child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('🎲 If we ran through 100 growing seasons…',
-            style: _label(15, color: kBrown, w: FontWeight.bold)),
-        const SizedBox(height: 4),
+            style: _label(_fs(ctx, 14), color: kBrown, w: FontWeight.bold),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
+        SizedBox(height: ctx.sp(4)),
         Text('Based on $_yrs years of real weather in ${_loc.name}',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-        const SizedBox(height: 16),
+            style: TextStyle(fontSize: _fs(ctx, 11), color: Colors.grey.shade500),
+            overflow: TextOverflow.ellipsis, maxLines: 1),
+        SizedBox(height: ctx.sp(16)),
 
-        _scenarioRow('☀️', 'Great harvest',
+        _scenarioRow(ctx, '☀️', 'Great harvest',
             'More than ${toKgAcre(r.p75).toStringAsFixed(0)} kg/acre',
             (great / n * 100).round(), kOlive),
-        const SizedBox(height: 10),
-        _scenarioRow('🌤', 'Normal harvest',
+        SizedBox(height: ctx.sp(10)),
+        _scenarioRow(ctx, '🌤', 'Normal harvest',
             '${toKgAcre(r.p25).toStringAsFixed(0)} – ${toKgAcre(r.p75).toStringAsFixed(0)} kg/acre',
             (ok / n * 100).round(), kAmber),
-        const SizedBox(height: 10),
-        _scenarioRow('🌧', 'Difficult harvest',
+        SizedBox(height: ctx.sp(10)),
+        _scenarioRow(ctx, '🌧', 'Difficult harvest',
             'Less than ${toKgAcre(r.p25).toStringAsFixed(0)} kg/acre',
             (bad / n * 100).round(), kRed),
 
-        const SizedBox(height: 14),
+        SizedBox(height: ctx.sp(14)),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(ctx.sp(12)),
           decoration: BoxDecoration(
             color: _crop.color.withOpacity(0.07),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(ctx.sp(10)),
             border: Border.all(color: _crop.color.withOpacity(0.2)),
           ),
           child: Row(children: [
-            Text(_crop.emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 10),
+            Text(_crop.emoji, style: TextStyle(fontSize: ctx.sp(20))),
+            SizedBox(width: ctx.sp(10)),
             Expanded(child: Text(
-              'Typical ${_crop.name} harvest for your location: '
+              'Typical ${_crop.name} harvest: '
               '${toKgAcre(r.p25).toStringAsFixed(0)} – ${toKgAcre(r.p75).toStringAsFixed(0)} kg/acre',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _crop.color),
+              style: TextStyle(fontSize: _fs(ctx, 12),
+                  fontWeight: FontWeight.w600, color: _crop.color),
+              overflow: TextOverflow.ellipsis, maxLines: 2,
             )),
           ]),
         ),
@@ -945,58 +1133,67 @@ class _PageState extends State<MonteCarloSimulationPage>
     ));
   }
 
-  Widget _scenarioRow(String emoji, String label, String desc,
-      int pct, Color color) => Row(children: [
-    Text(emoji, style: const TextStyle(fontSize: 22)),
-    const SizedBox(width: 10),
+  Widget _scenarioRow(BuildContext ctx, String emoji, String label,
+      String desc, int pct, Color color) => Row(children: [
+    Text(emoji, style: TextStyle(fontSize: ctx.sp(20))),
+    SizedBox(width: ctx.sp(8)),
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: _label(13, color: Colors.grey.shade800)),
+      // FIX: Wrap label row so the badge never gets pushed off-screen
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+        Flexible(child: Text(label,
+            style: _label(_fs(ctx, 12), color: Colors.grey.shade800),
+            overflow: TextOverflow.ellipsis, maxLines: 1)),
+        SizedBox(width: ctx.sp(4)),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          padding: EdgeInsets.symmetric(
+              horizontal: ctx.sp(7), vertical: ctx.sp(2)),
           decoration: BoxDecoration(color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(20)),
-          child: Text('$pct out of 100',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color)),
+          child: Text('$pct / 100',
+              style: TextStyle(fontWeight: FontWeight.bold,
+                  fontSize: _fs(ctx, 11), color: color)),
         ),
       ]),
-      const SizedBox(height: 5),
+      SizedBox(height: ctx.sp(5)),
       ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(ctx.sp(6)),
         child: LinearProgressIndicator(
-          value: pct / 100, minHeight: 10,
+          value: pct / 100, minHeight: ctx.sp(9),
           backgroundColor: Colors.grey.shade200,
           valueColor: AlwaysStoppedAnimation(color),
         ),
       ),
-      const SizedBox(height: 3),
-      Text(desc, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+      SizedBox(height: ctx.sp(3)),
+      Text(desc,
+          style: TextStyle(fontSize: _fs(ctx, 10), color: Colors.grey.shade500),
+          overflow: TextOverflow.ellipsis, maxLines: 1),
     ])),
   ]);
 
-  // ── Histogram ──────────────────────────────────────────────────────────────
+  // ── Histogram ─────────────────────────────────────────────────────────────
 
-  Widget _histChart() {
+  Widget _histChart(BuildContext ctx) {
     final r = _result!;
     final maxF = r.histogram.map((b) => b.freq).reduce(max);
-
-    // Find which bin the mean falls into (histogram is already in kg/acre)
     final meanKg = toKgAcre(r.mean);
-    final meanBinIdx = r.histogram.indexWhere(
-        (b) => meanKg >= b.lo && meanKg < b.hi);
+    final meanBinIdx = r.histogram.indexWhere((b) => meanKg >= b.lo && meanKg < b.hi);
+    final chartH = ctx.responsive<double>(sm: 110, md: 150, lg: 170);
 
-    return _card(child: Column(
+    return _card(ctx, child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('📊 What Range of Harvests Should You Expect?',
-            style: _label(15, color: kBrown, w: FontWeight.bold)),
-        const SizedBox(height: 4),
+            style: _label(_fs(ctx, 14), color: kBrown, w: FontWeight.bold),
+            overflow: TextOverflow.ellipsis, maxLines: 2),
+        SizedBox(height: ctx.sp(4)),
         Text('Each bar shows how common that harvest level is across 500 simulated seasons',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-        const SizedBox(height: 20),
+            style: TextStyle(fontSize: _fs(ctx, 11), color: Colors.grey.shade500)),
+        SizedBox(height: ctx.sp(20)),
 
         SizedBox(
-          height: 140,
+          height: chartH,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(r.histogram.length, (i) {
@@ -1004,28 +1201,30 @@ class _PageState extends State<MonteCarloSimulationPage>
               final hf   = maxF > 0 ? b.freq / maxF : 0.0;
               final isMn = i == (meanBinIdx < 0 ? 0 : meanBinIdx);
               return Expanded(child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
+                padding: EdgeInsets.symmetric(horizontal: ctx.sp(1.5)),
                 child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   if (isMn) Column(children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: ctx.sp(4), vertical: ctx.sp(2)),
                       decoration: BoxDecoration(color: kAmber,
-                          borderRadius: BorderRadius.circular(4)),
-                      child: const Text('avg',
-                          style: TextStyle(fontSize: 7, color: Colors.white,
+                          borderRadius: BorderRadius.circular(ctx.sp(4))),
+                      child: Text('avg',
+                          style: TextStyle(fontSize: ctx.sp(7), color: Colors.white,
                               fontWeight: FontWeight.bold)),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: ctx.sp(2)),
                   ]),
                   AnimatedContainer(
                     duration: Duration(milliseconds: 400 + i * 40),
                     curve: Curves.easeOut,
-                    height: 110 * hf,
+                    height: (chartH * 0.78) * hf,
                     decoration: BoxDecoration(
                       color: isMn
                           ? kAmber
                           : _crop.color.withOpacity(0.5 + 0.5 * hf),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+                      borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(ctx.sp(4))),
                     ),
                   ),
                 ]),
@@ -1034,31 +1233,33 @@ class _PageState extends State<MonteCarloSimulationPage>
           ),
         ),
 
-        const SizedBox(height: 6),
-        // X-axis labels — show every other bin in kg/acre
+        SizedBox(height: ctx.sp(6)),
+        // FIX: x-axis labels — clip text so they never overflow bar columns
         Row(children: List.generate(r.histogram.length, (i) => Expanded(
           child: i % 2 == 0
               ? Text(r.histogram[i].lo.toStringAsFixed(0),
-                  style: TextStyle(fontSize: 7, color: Colors.grey.shade400),
-                  textAlign: TextAlign.center)
+                  style: TextStyle(fontSize: ctx.sp(7), color: Colors.grey.shade400),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.clip,
+                  maxLines: 1)
               : const SizedBox.shrink(),
         ))),
-        const SizedBox(height: 2),
+        SizedBox(height: ctx.sp(2)),
         Center(child: Text('Harvest (kg/acre)',
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade500))),
+            style: TextStyle(fontSize: _fs(ctx, 10), color: Colors.grey.shade500))),
 
-        const SizedBox(height: 12),
-        Wrap(spacing: 16, runSpacing: 6, children: [
-          _dot(_crop.color, '${_crop.name} harvest'),
-          _dot(kAmber, 'Your expected average'),
+        SizedBox(height: ctx.sp(12)),
+        Wrap(spacing: ctx.sp(14), runSpacing: ctx.sp(6), children: [
+          _dot(ctx, _crop.color, '${_crop.name} harvest'),
+          _dot(ctx, kAmber, 'Your expected average'),
         ]),
       ],
     ));
   }
 
-  // ── Advice card ────────────────────────────────────────────────────────────
+  // ── Advice card ───────────────────────────────────────────────────────────
 
-  Widget _adviceCard() {
+  Widget _adviceCard(BuildContext ctx) {
     final r  = _result!;
     final cp = _crop;
     final w  = _weather!;
@@ -1073,23 +1274,20 @@ class _PageState extends State<MonteCarloSimulationPage>
 
     if (pct >= 65) {
       headline = '✅ Great news — ${cp.name} grows well here!';
-      hColor   = kOlive;
-      hIcon    = Icons.check_circle_outline_rounded;
+      hColor   = kOlive; hIcon = Icons.check_circle_outline_rounded;
       body     = 'The weather in ${_loc.name} is well suited for ${cp.name}. '
                  'You should get strong, reliable harvests most years. '
                  'Keep up good farming practices and you are on the right track!';
     } else if (pct >= 35) {
       headline = '⚠️ Decent results — but some risk';
-      hColor   = kAmber;
-      hIcon    = Icons.info_outline_rounded;
+      hColor   = kAmber; hIcon = Icons.info_outline_rounded;
       body     = '${_loc.name} can grow ${cp.name}, but conditions are not perfect. '
                  '${!rFit ? "The rainfall here is outside the ideal range for this crop. " : ""}'
                  '${!tFit ? "The temperature is not ideal for this crop. " : ""}'
-                 'Consider using drip irrigation or asking your local agriculture officer for advice on suitable varieties.';
+                 'Consider drip irrigation or asking your local agriculture officer for advice on suitable varieties.';
     } else {
       headline = '❌ This crop is a difficult fit for your area';
-      hColor   = kRed;
-      hIcon    = Icons.warning_amber_rounded;
+      hColor   = kRed; hIcon = Icons.warning_amber_rounded;
       body     = '${_loc.name}\'s climate is not well suited for ${cp.name}. '
                  '${!rFit ? "Rainfall here (${w.meanRainfall.toStringAsFixed(0)} mm/year) is outside the ideal range. " : ""}'
                  '${!tFit ? "The average temperature (${w.meanTemp.toStringAsFixed(1)}°C) is not right for this crop. " : ""}'
@@ -1097,36 +1295,39 @@ class _PageState extends State<MonteCarloSimulationPage>
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ctx.cardPad),
       decoration: BoxDecoration(
         color: hColor.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ctx.sp(14)),
         border: Border.all(color: hColor.withOpacity(0.25)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(hIcon, color: hColor, size: 24),
-          const SizedBox(width: 8),
+        // FIX: headline row — icon + Flexible text to prevent overflow
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(hIcon, color: hColor, size: ctx.sp(22)),
+          SizedBox(width: ctx.sp(8)),
           Expanded(child: Text(headline,
-              style: _label(14, color: hColor, w: FontWeight.bold))),
+              style: _label(_fs(ctx, 13), color: hColor, w: FontWeight.bold))),
         ]),
-        const SizedBox(height: 10),
-        Text(body, style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.6)),
-        const SizedBox(height: 14),
+        SizedBox(height: ctx.sp(10)),
+        Text(body,
+            style: TextStyle(fontSize: _fs(ctx, 12),
+                color: Colors.grey.shade700, height: 1.6)),
+        SizedBox(height: ctx.sp(14)),
 
-        // Climate match chips — plain language
-        Wrap(spacing: 8, runSpacing: 6, children: [
-          _chip(
-            '💧 Rain: ${w.meanRainfall.toStringAsFixed(0)} mm/year ${rFit ? "✓ Good" : "✗ Not ideal"}',
+        // Chips always wrap — no overflow risk
+        Wrap(spacing: ctx.sp(6), runSpacing: ctx.sp(6), children: [
+          _chip(ctx,
+            '💧 Rain: ${w.meanRainfall.toStringAsFixed(0)} mm ${rFit ? "✓" : "✗"}',
             rFit ? kOlive : kRed, rFit ? kOlive.withOpacity(0.08) : kRed.withOpacity(0.07)),
-          _chip(
-            '🌡 Temp: ${w.meanTemp.toStringAsFixed(1)}°C ${tFit ? "✓ Good" : "✗ Not ideal"}',
+          _chip(ctx,
+            '🌡 Temp: ${w.meanTemp.toStringAsFixed(1)}°C ${tFit ? "✓" : "✗"}',
             tFit ? kOlive : kRed, tFit ? kOlive.withOpacity(0.08) : kRed.withOpacity(0.07)),
-          _chip(
-            '${cp.emoji} Ideal rain: ${cp.rLow.toStringAsFixed(0)}–${cp.rHigh.toStringAsFixed(0)} mm',
+          _chip(ctx,
+            '${cp.emoji} Rain: ${cp.rLow.toStringAsFixed(0)}–${cp.rHigh.toStringAsFixed(0)} mm',
             kSky, kSky.withOpacity(0.08)),
-          _chip(
-            '${cp.emoji} Ideal temp: ${cp.tLow}–${cp.tHigh}°C',
+          _chip(ctx,
+            '${cp.emoji} Temp: ${cp.tLow}–${cp.tHigh}°C',
             kSky, kSky.withOpacity(0.08)),
         ]),
       ]),
@@ -1135,12 +1336,12 @@ class _PageState extends State<MonteCarloSimulationPage>
 
   // ── Shared helpers ─────────────────────────────────────────────────────────
 
-  Widget _card({required Widget child}) => Container(
+  Widget _card(BuildContext ctx, {required Widget child}) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(16),
+    padding: EdgeInsets.all(ctx.cardPad),
     decoration: BoxDecoration(
       color: kSurface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(ctx.sp(16)),
       border: Border.all(color: kBorderLight),
       boxShadow: [BoxShadow(color: kBrown.withOpacity(0.04),
           blurRadius: 10, offset: const Offset(0, 4))],
@@ -1150,41 +1351,45 @@ class _PageState extends State<MonteCarloSimulationPage>
 
   Widget _divider() => Divider(color: kBorderLight, height: 1);
 
-  Widget _pill(String label, Color fg, Color bg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+  Widget _pill(BuildContext ctx, String label, Color fg, Color bg) => Container(
+    padding: EdgeInsets.symmetric(horizontal: ctx.sp(10), vertical: ctx.sp(4)),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg)),
+    child: Text(label,
+        style: TextStyle(fontSize: ctx.sp(11), fontWeight: FontWeight.bold, color: fg)),
   );
 
-  Widget _chip(String label, Color fg, Color bg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  Widget _chip(BuildContext ctx, String label, Color fg, Color bg) => Container(
+    padding: EdgeInsets.symmetric(horizontal: ctx.sp(9), vertical: ctx.sp(5)),
     decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20),
         border: Border.all(color: fg.withOpacity(0.25))),
     child: Text(label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+        style: TextStyle(fontSize: ctx.sp(11), fontWeight: FontWeight.w600, color: fg)),
   );
 
-  Widget _dot(Color color, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Container(width: 10, height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-    const SizedBox(width: 5),
-    Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-  ]);
+  Widget _dot(BuildContext ctx, Color color, String label) =>
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: ctx.sp(10), height: ctx.sp(10),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        SizedBox(width: ctx.sp(5)),
+        Text(label, style: TextStyle(fontSize: ctx.sp(11), color: Colors.grey.shade600)),
+      ]);
 
   Widget _dropdown<T>({
+    required BuildContext ctx,
     required T value, required List<T> items,
     required String Function(T) label, required ValueChanged<T?> onChanged,
   }) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+    padding: EdgeInsets.symmetric(horizontal: ctx.sp(12), vertical: ctx.sp(2)),
     decoration: BoxDecoration(
       color: kBrown.withOpacity(0.05),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(ctx.sp(12)),
       border: Border.all(color: kBorderLight),
     ),
     child: DropdownButton<T>(
       value: value, isExpanded: true,
       underline: const SizedBox.shrink(),
-      style: const TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w500),
+      style: TextStyle(color: Colors.black87,
+          fontSize: _fs(ctx, 14), fontWeight: FontWeight.w500),
       items: items.map((i) =>
           DropdownMenuItem(value: i, child: Text(label(i)))).toList(),
       onChanged: onChanged,
